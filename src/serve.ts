@@ -175,10 +175,19 @@ function makeRouter(dir: string, config: TicketKitConfig) {
   const detailRe = new RegExp(`^/ticket/(${config.idPrefix}-\\d{4})$`);
   return (req: http.IncomingMessage, res: http.ServerResponse): void => {
     const url = req.url ?? '/';
-    if (url === '/api/tickets') return serveApiTickets(res, dir, config);
-    if (url === '/') return serveRoot(res, dir, config);
+    if (url === '/api/tickets') {
+      serveApiTickets(res, dir, config);
+      return;
+    }
+    if (url === '/') {
+      serveRoot(res, dir, config);
+      return;
+    }
     const detail = detailRe.exec(url);
-    if (detail) return serveTicketDetail(res, dir, config, detail[1] ?? '');
+    if (detail) {
+      serveTicketDetail(res, dir, config, detail[1] ?? '');
+      return;
+    }
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not found');
   };
