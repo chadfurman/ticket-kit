@@ -16,6 +16,8 @@ import { serve } from './serve.ts';
 import { generate } from './generate.ts';
 import { createTicket, type NewTicketOptions } from './new.ts';
 import { checkTickets } from './check.ts';
+import { migrate } from './migrate.ts';
+import { KIT_VERSION, SCHEMA_VERSION } from './version.ts';
 
 const HELP = `ticket-kit — markdown tickets with a live board
 
@@ -25,6 +27,8 @@ Usage:
   ticket-kit new "<title>"      Create a ticket
                                   --priority <P0..>  --area <name>  --status <key>
   ticket-kit check              Validate frontmatter; exit 1 if any problems
+  ticket-kit migrate            Upgrade tickets to the current data schema
+  ticket-kit version            Print the kit + data-schema versions
   ticket-kit help               This message
 
 Config: drop a .tickets.json at the project root to override ticketsDir, port,
@@ -92,6 +96,19 @@ function main(): void {
       break;
     case 'check':
       runCheck(root);
+      break;
+    case 'migrate': {
+      const result = migrate(root, loadConfig(root));
+      if (result.applied.length === 0) {
+        console.log(`✓ tickets already at schema v${result.to.toString()} — nothing to migrate`);
+      } else {
+        for (const step of result.applied) console.log(`• ${step}`);
+        console.log(`✓ migrated v${result.from.toString()} → v${result.to.toString()}`);
+      }
+      break;
+    }
+    case 'version':
+      console.log(`ticket-kit ${KIT_VERSION} (data schema v${SCHEMA_VERSION.toString()})`);
       break;
     default:
       console.log(HELP);

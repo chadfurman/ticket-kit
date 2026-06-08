@@ -138,6 +138,34 @@ Sort order on the board: **column → priority → rank → id**. Tickets with
   unblocks, promotes from icebox, answers "what should I work on next".
 - **`/tickets` command** — `serve`, `generate`, `new <desc>`, `triage`, `check`.
 
+## Updating & data safety
+
+The kit is **stateless code**; your tickets are **separate data** (`<ticketsDir>/*.md`
++ `.tickets.json`). Updating one never touches the other — except through a declared
+migration.
+
+To update a vendored copy:
+
+```bash
+cp -r ticket-kit/src/ my-project/tools/tickets/   # re-copy the logic; data untouched
+ticket-kit check                                  # compatibility gate
+ticket-kit migrate                                # only if check says the schema is older
+ticket-kit generate                               # refresh the index/board
+```
+
+Two versions, independent:
+
+- **`KIT_VERSION`** — the code version (`ticket-kit version` prints it).
+- **`SCHEMA_VERSION`** — the data-contract version (ticket frontmatter + `.tickets.json`
+  shape). Your data records the version it was written in via `.tickets.json`'s
+  `schemaVersion` (absent ⇒ baseline 1).
+
+`check` is the guard: it **errors** if your data's schema is newer than the kit
+(update the kit) and **prompts `migrate`** if it's older. Breaking changes to the
+contract are only allowed alongside a registered migration — see `CLAUDE.md`
+§ "The data contract". So a breaking change can never silently corrupt your tickets;
+worst case `check` stops you and points at `migrate`.
+
 ## Develop ticket-kit itself
 
 ```bash

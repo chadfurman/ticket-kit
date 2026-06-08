@@ -27,6 +27,8 @@ export interface TicketKitConfig {
   columns: Column[];
   /** Board heading. */
   title: string;
+  /** The data-contract version this project's tickets are written in. Absent ⇒ baseline. */
+  schemaVersion?: number;
 }
 
 export const DEFAULT_CONFIG: TicketKitConfig = {
@@ -65,9 +67,20 @@ export function mergeConfig(raw: Record<string, unknown>): TicketKitConfig {
   if (typeof raw['port'] === 'number') merged.port = raw['port'];
   if (typeof raw['idPrefix'] === 'string') merged.idPrefix = raw['idPrefix'];
   if (typeof raw['title'] === 'string') merged.title = raw['title'];
+  if (typeof raw['schemaVersion'] === 'number') merged.schemaVersion = raw['schemaVersion'];
   if (isStringArray(raw['priorities']) && raw['priorities'].length > 0) merged.priorities = raw['priorities'];
   if (isColumnArray(raw['columns']) && raw['columns'].length > 0) merged.columns = raw['columns'];
   return merged;
+}
+
+/** Stamp the schema version into `.tickets.json` (creating it if absent). */
+export function writeSchemaVersion(rootDir: string, version: number): void {
+  const file = path.join(rootDir, CONFIG_FILE);
+  const raw: Record<string, unknown> = fs.existsSync(file)
+    ? (JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, unknown>)
+    : {};
+  raw['schemaVersion'] = version;
+  fs.writeFileSync(file, `${JSON.stringify(raw, null, 2)}\n`, 'utf8');
 }
 
 /** Load `.tickets.json` from `rootDir` (defaults to cwd), falling back to defaults. */

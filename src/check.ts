@@ -10,10 +10,30 @@
 import * as fs from 'node:fs';
 import { type TicketKitConfig, ticketsDirPath, statusOrder, ticketFilePattern } from './config.ts';
 import { parseFrontmatter } from './lib.ts';
+import { SCHEMA_VERSION } from './version.ts';
+import { dataSchemaVersion } from './migrate.ts';
 
 export interface Problem {
   file: string;
   message: string;
+}
+
+/** Compare the project's declared data schema against what this kit supports. */
+function schemaCompatProblem(config: TicketKitConfig): Problem | null {
+  const data = dataSchemaVersion(config);
+  if (data > SCHEMA_VERSION) {
+    return {
+      file: '.tickets.json',
+      message: `schema v${data.toString()} is newer than this ticket-kit (supports v${SCHEMA_VERSION.toString()}) — update the kit`,
+    };
+  }
+  if (data < SCHEMA_VERSION) {
+    return {
+      file: '.tickets.json',
+      message: `schema v${data.toString()} is older than this ticket-kit (v${SCHEMA_VERSION.toString()}) — run "ticket-kit migrate"`,
+    };
+  }
+  return null;
 }
 
 function checkOne(
@@ -55,6 +75,9 @@ export function checkTickets(rootDir: string, config: TicketKitConfig): Problem[
   const validPriorities = new Set(config.priorities);
   const seenIds = new Map<string, string>();
   const problems: Problem[] = [];
+
+  const compat = schemaCompatProblem(config);
+  if (compat) problems.push(compat);
 
   for (const filename of files) {
     const content = fs.readFileSync(`${dir}/${filename}`, 'utf8');

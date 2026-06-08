@@ -1,6 +1,6 @@
 {
   "name": "ticket-kit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Markdown tickets with a live neon board, a zero-dependency CLI, and AI helpers. Clone or copy into any project.",
   "type": "module",
   "bin": {
@@ -17,7 +17,13 @@
   "engines": {
     "node": ">=22"
   },
-  "keywords": ["tickets", "kanban", "board", "markdown", "project-management"],
+  "keywords": [
+    "tickets",
+    "kanban",
+    "board",
+    "markdown",
+    "project-management"
+  ],
   "license": "MIT",
   "author": "Chad Furman",
   "devDependencies": {
