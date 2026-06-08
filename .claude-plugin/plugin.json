@@ -1,0 +1,9 @@
+{
+  "name": "ticket-kit",
+  "version": "0.1.0",
+  "description": "Markdown tickets with a live neon board, a zero-dependency CLI, and AI helpers that author and groom tickets. Clone or copy into any project.",
+  "author": {
+    "name": "Chad Furman"
+  },
+  "keywords": ["tickets", "kanban", "project-management", "markdown", "board"]
+}

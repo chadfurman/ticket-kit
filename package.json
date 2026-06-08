@@ -1,0 +1,27 @@
+{
+  "name": "ticket-kit",
+  "version": "0.1.0",
+  "description": "Markdown tickets with a live neon board, a zero-dependency CLI, and AI helpers. Clone or copy into any project.",
+  "type": "module",
+  "bin": {
+    "ticket-kit": "src/cli.ts"
+  },
+  "scripts": {
+    "serve": "node --experimental-transform-types src/cli.ts serve",
+    "generate": "node --experimental-transform-types src/cli.ts generate",
+    "new": "node --experimental-transform-types src/cli.ts new",
+    "check": "node --experimental-transform-types src/cli.ts check",
+    "test": "node --experimental-transform-types --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": ["tickets", "kanban", "board", "markdown", "project-management"],
+  "license": "MIT",
+  "author": "Chad Furman",
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3"
+  }
+}

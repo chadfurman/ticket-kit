@@ -1,0 +1,12 @@
+{
+  "title": "ticket-kit",
+  "ticketsDir": "tickets",
+  "port": 4317,
+  "idPrefix": "TD",
+  "priorities": ["P0", "P1", "P2", "P3"],
+  "columns": [
+    { "key": "open", "label": "Open" },
+    { "key": "in-progress", "label": "In Progress" },
+    { "key": "done", "label": "Done" }
+  ]
+}
