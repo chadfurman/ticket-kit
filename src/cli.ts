@@ -26,6 +26,7 @@ Usage:
   ticket-kit generate           Regenerate README index + static board.html
   ticket-kit new "<title>"      Create a ticket
                                   --priority <P0..>  --area <name>  --status <key>
+                                  --parent <ID>  (make it a subtask of <ID>)
   ticket-kit check              Validate frontmatter; exit 1 if any problems
   ticket-kit migrate            Upgrade tickets to the current data schema
   ticket-kit version            Print the kit + data-schema versions
@@ -65,6 +66,7 @@ function runNew(root: string, args: string[]): void {
   if (flags['priority']) opts.priority = flags['priority'];
   if (flags['area']) opts.area = flags['area'];
   if (flags['status']) opts.status = flags['status'];
+  if (flags['parent']) opts.parent = flags['parent'];
   console.log(`✓ wrote ${createTicket(root, config, opts)}`);
 }
 

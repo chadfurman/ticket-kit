@@ -31,6 +31,8 @@ export interface Ticket {
   pillars: string[];
   blockedBy: string[];
   created: string;
+  /** Optional parent ticket id — set on a subtask. Absent on top-level tickets. */
+  parent?: string;
   filename: string;
 }
 
@@ -89,7 +91,7 @@ export function parseFrontmatter(content: string, filename: string): Ticket {
   const fields = extractFrontmatterBlock(content, filename);
   validateRequiredFields(fields, filename);
 
-  return {
+  const ticket: Ticket = {
     id: fields['id'] ?? '',
     title: fields['title'] ?? '',
     status: fields['status'] ?? '',
@@ -101,6 +103,10 @@ export function parseFrontmatter(content: string, filename: string): Ticket {
     created: fields['created'] ?? '',
     filename,
   };
+  // Optional: only set `parent` when present + non-empty (loader tolerates absence).
+  const parent = fields['parent']?.trim();
+  if (parent) ticket.parent = parent;
+  return ticket;
 }
 
 // ---------------------------------------------------------------------------
@@ -182,7 +188,44 @@ export function cardHrefFile(ticket: Ticket): string {
   return ticket.filename;
 }
 
-export function buildCard(ticket: Ticket, hrefFor: (t: Ticket) => string = cardHrefFile): string {
+// ---------------------------------------------------------------------------
+// Subtasks — a ticket with a `parent` renders nested under that parent's card.
+// ---------------------------------------------------------------------------
+
+/** A subtask counts as "done" when its status is the last (rightmost) column. */
+export function isDoneStatus(status: string, config: TicketKitConfig): boolean {
+  const keys = columnKeys(config);
+  return status === keys[keys.length - 1];
+}
+
+/** Group tickets by their `parent` id (only those that declare one). */
+export function childrenByParent(tickets: Ticket[]): Map<string, Ticket[]> {
+  const map = new Map<string, Ticket[]>();
+  for (const t of tickets) {
+    if (!t.parent) continue;
+    const arr = map.get(t.parent) ?? [];
+    arr.push(t);
+    map.set(t.parent, arr);
+  }
+  return map;
+}
+
+function buildSubtasksHtml(children: Ticket[], config: TicketKitConfig): string {
+  const rows = children
+    .map((c) => {
+      const done = isDoneStatus(c.status, config);
+      return `<div class="subtask${done ? ' done' : ''}"><span class="st-box" aria-label="${done ? 'done' : 'todo'}">${done ? '✓' : '○'}</span><span class="st-id">${escapeHtml(c.id)}</span> <span class="st-title">${escapeHtml(c.title)}</span></div>`;
+    })
+    .join('');
+  return `<div class="subtasks">${rows}</div>`;
+}
+
+export function buildCard(
+  ticket: Ticket,
+  hrefFor: (t: Ticket) => string = cardHrefFile,
+  children: Ticket[] = [],
+  config?: TicketKitConfig,
+): string {
   const pillarsHtml = ticket.pillars
     .map((p) => `<span class="tag">${escapeHtml(p)}</span>`)
     .join('');
@@ -190,16 +233,23 @@ export function buildCard(ticket: Ticket, hrefFor: (t: Ticket) => string = cardH
     ticket.blockedBy.length > 0
       ? `<div class="blocked">blocked-by: ${escapeHtml(ticket.blockedBy.join(', '))}</div>`
       : '';
+  const doneCount = config ? children.filter((c) => isDoneStatus(c.status, config)).length : 0;
+  const badgeHtml =
+    children.length > 0
+      ? ` <span class="subtask-badge" title="${doneCount.toString()} of ${children.length.toString()} subtasks done">${doneCount.toString()}/${children.length.toString()}</span>`
+      : '';
+  const subtasksHtml = children.length > 0 && config ? buildSubtasksHtml(children, config) : '';
 
   return `<a class="card" href="${escapeHtml(hrefFor(ticket))}">
   <div class="card-header">
     <span class="card-id">${escapeHtml(ticket.id)}</span>
     <span class="chip" style="${priorityChipStyle(ticket.priority)}">${escapeHtml(ticket.priority)}</span>
   </div>
-  <div class="card-title">${escapeHtml(ticket.title)}</div>
+  <div class="card-title">${escapeHtml(ticket.title)}${badgeHtml}</div>
   <div class="card-area">${escapeHtml(ticket.area)}</div>
   <div class="card-pillars">${pillarsHtml}</div>
   ${blockedHtml}
+  ${subtasksHtml}
 </a>`;
 }
 
@@ -208,10 +258,26 @@ export function buildColumnHtml(
   config: TicketKitConfig,
   hrefFor: (t: Ticket) => string = cardHrefFile,
 ): string {
+  const kids = childrenByParent(tickets);
+  const byId = new Map(tickets.map((t) => [t.id, t]));
+  const isTopLevel = (t: Ticket): boolean => t.parent === undefined || !byId.has(t.parent);
+  // A ticket is nested (pulled out of its column) ONLY when its parent is itself
+  // top-level. Nesting is one level deep, so a grandchild — or a member of a
+  // parent cycle — degrades to a loose top-level card rather than vanishing.
+  const isNested = (t: Ticket): boolean => {
+    if (t.parent === undefined) return false;
+    const p = byId.get(t.parent);
+    return p !== undefined && isTopLevel(p);
+  };
+
   return config.columns
     .map(({ key, label }) => {
-      const colTickets = tickets.filter((t) => t.status === key);
-      const cardsHtml = colTickets.map((t) => buildCard(t, hrefFor)).join('\n');
+      const colTickets = tickets.filter((t) => t.status === key && !isNested(t));
+      // Only render children that are genuinely nested (their parent is top-level),
+      // so a cycle member or self-parent isn't ALSO drawn as a nested row → exactly once.
+      const cardsHtml = colTickets
+        .map((t) => buildCard(t, hrefFor, (kids.get(t.id) ?? []).filter(isNested), config))
+        .join('\n');
       return `<div class="column" data-status="${escapeHtml(key)}">
   <div class="col-header">${escapeHtml(label)} <span class="col-count">${colTickets.length.toString()}</span></div>
   <div class="cards">${cardsHtml}</div>
@@ -384,6 +450,20 @@ h1 {
   font-size: 10px;
 }
 .blocked { font-size: 10px; color: #e67e22; margin-top: 5px; }
+.subtask-badge {
+  background: #111b3a; color: #7aa2ff; border: 1px solid #1c2d5e;
+  border-radius: 10px; padding: 0 7px; font-size: 10px; font-weight: 600; margin-left: 4px;
+}
+.subtasks {
+  margin-top: 8px; padding-top: 7px; border-top: 1px dashed var(--border);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.subtask { display: flex; align-items: baseline; gap: 6px; font-size: 11px; color: #8b96c4; }
+.subtask .st-box { color: #8b96c4; width: 10px; }
+.subtask.done { color: #4ade80; }
+.subtask.done .st-box { color: #4ade80; }
+.subtask.done .st-title { text-decoration: line-through; opacity: 0.7; }
+.subtask .st-id { color: #7aa2ff; }
 .icebox-note { padding: 10px 22px 20px; color: var(--dim); font-size: 11px; }
 footer {
   padding: 14px 22px 40px;

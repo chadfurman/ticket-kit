@@ -5,7 +5,36 @@
  */
 
 import type { TicketKitConfig } from './config.ts';
-import { type Ticket, escapeHtml, priorityChipStyle } from './lib.ts';
+import { type Ticket, escapeHtml, priorityChipStyle, isDoneStatus } from './lib.ts';
+
+export interface TicketRelations {
+  parent?: Ticket;
+  children: Ticket[];
+}
+
+/** Parent link + subtask list, rendered above the prose. Empty when neither exists. */
+function buildRelationsHtml(
+  relations: TicketRelations | undefined,
+  config: TicketKitConfig,
+  hrefFor: (id: string) => string,
+): string {
+  if (!relations) return '';
+  const parts: string[] = [];
+  if (relations.parent) {
+    const p = relations.parent;
+    parts.push(`<div class="detail-rel">↑ parent: <a href="${escapeHtml(hrefFor(p.id))}">${escapeHtml(p.id)}</a> ${escapeHtml(p.title)}</div>`);
+  }
+  if (relations.children.length > 0) {
+    const items = relations.children
+      .map((c) => {
+        const done = isDoneStatus(c.status, config);
+        return `<li class="${done ? 'done' : ''}">${done ? '✓' : '○'} <a href="${escapeHtml(hrefFor(c.id))}">${escapeHtml(c.id)}</a> ${escapeHtml(c.title)}</li>`;
+      })
+      .join('');
+    parts.push(`<div class="detail-rel">subtasks:<ul>${items}</ul></div>`);
+  }
+  return parts.join('\n');
+}
 
 export const DETAIL_CSS = `
 .detail { max-width: 820px; margin: 0 auto; padding: 28px 24px 60px; }
@@ -17,6 +46,11 @@ export const DETAIL_CSS = `
   background: #111b3a; color: #7aa2ff; border: 1px solid #1c2d5e;
   border-radius: 3px; padding: 2px 8px; font-size: 11px;
 }
+.detail-rel { margin: 10px 0 4px; font-size: 12px; color: var(--dim); }
+.detail-rel a { color: var(--accent); text-decoration: none; }
+.detail-rel a:hover { text-decoration: underline; }
+.detail-rel ul { margin: 6px 0 0 18px; }
+.detail-rel li.done { color: #4ade80; }
 .prose { margin-top: 16px; }
 .prose h1 { font-size: 20px; color: #fff; margin: 22px 0 10px; text-shadow: 0 0 12px rgba(120,160,255,0.4); }
 .prose h2 { font-size: 15px; color: var(--accent); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
@@ -40,10 +74,12 @@ export function buildDetailPage(
   config: TicketKitConfig,
   boardCss: string,
   detailCss: string,
+  relations?: TicketRelations,
 ): string {
   const pillars = ticket.pillars
     .map((p) => `<span class="meta-tag">${escapeHtml(p)}</span>`)
     .join('');
+  const relationsHtml = buildRelationsHtml(relations, config, (id) => `/ticket/${id}`);
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -65,6 +101,7 @@ ${detailCss}
     <span class="meta-tag">${escapeHtml(ticket.area)}</span>
     ${pillars}
   </div>
+  ${relationsHtml}
   <div class="prose">
 ${prose}
   </div>

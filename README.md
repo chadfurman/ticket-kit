@@ -1,90 +1,63 @@
 # ticket-kit
 
 A **file-based ticket system** you drop into any project. Every ticket is a
-markdown file with YAML frontmatter; a live neon board renders them; a tiny CLI
-creates, validates, and serves them. **Zero runtime dependencies** — just Node.
-The git history is your audit log.
+markdown file with YAML frontmatter; a live neon board renders them; a tiny
+zero-dependency CLI creates, validates, and serves them. The board is read-only —
+changes happen by editing files (by you or by the AI), so your git history *is*
+the audit log. It also ships as a **Claude Code plugin** so the AI can author and
+groom tickets in any repo.
 
-It also ships as a **Claude Code plugin** (a skill + two agents + a `/tickets`
-command), so the AI can author and triage tickets in any repo it's dropped into.
+## Quick start
 
-```
-┌──────────┐   ┌─────────────┐   ┌──────────────┐
-│ tickets/ │ → │ ticket-kit  │ → │ live board   │
-│ *.md     │   │ serve / gen │   │ + detail page│
-└──────────┘   └─────────────┘   └──────────────┘
-   the data       the tool          the view
-```
-
-## Why file-based?
-
-- **Diffable & reviewable** — tickets move through git like code. No DB, no export.
-- **Portable** — copy the folder into any repo; it just runs.
-- **AI-native** — "the AI manages the tickets." The board is read-only; changes
-  happen by editing files (by you or by the agents), so every change is a commit.
-
-## Get it into your project
-
-**Copy-in** (matches the "just drop it in" workflow):
+Requires Node ≥ 22 (built-in TypeScript type-stripping — nothing to `npm install`
+to run it).
 
 ```bash
-cp -r ticket-kit/ my-project/ticket-kit/
-# or clone it as its own thing:
-git clone <repo-url> ticket-kit
+git clone https://github.com/chadfurman/ticket-kit
+cd ticket-kit
+node src/cli.ts new "my first ticket"   # scaffold a ticket
+node src/cli.ts serve                    # → http://localhost:4317
 ```
 
-Then, from your project root:
+Open **http://localhost:4317** and you're looking at the live, read-only board:
+
+![ticket-kit's board running on ticket-kit's own tickets — note the nested subtasks and the 2/3 badge](docs/board.png)
+
+## Install into a project
+
+ticket-kit is **stateless logic** — copy `src/` in and the host owns its data
+(`tickets/*.md` + an optional `.tickets.json`):
 
 ```bash
-node ticket-kit/src/cli.ts new "my first ticket"
-node ticket-kit/src/cli.ts serve     # → http://localhost:4317
+cp -r ticket-kit/src my-project/tools/tickets
+cd my-project
+node tools/tickets/cli.ts serve          # board for THIS project's tickets/
 ```
 
-Optionally wire npm scripts in your project's `package.json`:
+Optionally add scripts to your `package.json`:
 
 ```json
+{ "scripts": { "tickets": "node tools/tickets/cli.ts", "tickets:serve": "node tools/tickets/cli.ts serve" } }
+```
+
+## Install the plugin (private repo)
+
+The plugin (a `/tickets` command + `ticket-author` / `ticket-groomer` agents)
+installs from this repo as its own marketplace — the same way change-factory does,
+and it works from a **private** repo because the GitHub source clones through your
+`gh` auth. In `~/.claude/settings.json`:
+
+```jsonc
 {
-  "scripts": {
-    "tickets": "node ticket-kit/src/cli.ts",
-    "tickets:serve": "node ticket-kit/src/cli.ts serve"
-  }
+  "extraKnownMarketplaces": {
+    "ticket-kit": { "source": { "source": "github", "repo": "chadfurman/ticket-kit" } }
+  },
+  "enabledPlugins": { "ticket-kit@ticket-kit": true }
 }
 ```
 
-> Requires Node ≥ 22 (uses built-in TypeScript type-stripping). The `serve` and
-> board features are pure Node — nothing to `npm install`.
-
-## CLI
-
-| Command                              | What it does                                              |
-| ------------------------------------ | -------------------------------------------------------- |
-| `ticket-kit serve`                   | Live board, auto-refreshes ~3s. Cards open a rendered detail page. |
-| `ticket-kit generate`                | Rewrite the README index + static `board.html`.          |
-| `ticket-kit new "<title>"`           | Scaffold a ticket. `--priority P1 --area web --status open`. |
-| `ticket-kit check`                   | Validate all frontmatter; exits non-zero on problems (CI guard). |
-| `ticket-kit help`                    | Usage.                                                   |
-
-## Configuration — `.tickets.json` (optional)
-
-Drop this at your project root to override any default:
-
-```json
-{
-  "title": "My Project",
-  "ticketsDir": "tickets",
-  "port": 4317,
-  "idPrefix": "TD",
-  "priorities": ["P0", "P1", "P2", "P3"],
-  "columns": [
-    { "key": "open", "label": "Open" },
-    { "key": "in-progress", "label": "In Progress" },
-    { "key": "done", "label": "Done" }
-  ]
-}
-```
-
-No config file? It defaults to `tickets/`, port `4317`, prefix `TD`, and the three
-columns above. `idPrefix` lets a bug tracker use `BUG-0001`, a roadmap use `RM-0001`, etc.
+Then run `/reload-plugins`. Ask Claude to "make a ticket for X" or "what should I
+work on next" and the agents take over.
 
 ## The ticket format
 
@@ -98,75 +71,50 @@ rank: 20                 # tie-breaker within column+priority; lower floats high
 area: web                # free-form domain tag
 pillars: [low-stress]    # optional project themes
 blocked-by: [TD-0003]    # ids this waits on
+parent: TD-0002          # OPTIONAL — makes this a subtask of TD-0002
 created: 2026-06-08
 ---
-
-# TD-0001 · Title
-
-## Why
-…the problem / opportunity.
-
-## What
-…what concretely gets done.
-
-## Acceptance
-- [ ] an observable outcome
 ```
 
-Sort order on the board: **column → priority → rank → id**. Tickets with
-`status: icebox` stay off the board (toggle "show icebox" on the live view).
+**Subtasks:** give a ticket a `parent:` and it renders nested under that parent's
+card, which shows a `[done/total]` badge. `parent` is optional — tickets without
+it work unchanged. Create one with `node src/cli.ts new "the subtask" --parent TD-0002`.
 
-## The board
+Board sort order: **column → priority → rank → id**. `status: icebox` keeps a
+ticket off the board (toggle "show icebox" on the live view).
 
-- **Live view** (`serve`) — polls the files every ~3s, so editing a `.md` updates
-  the board without a restart. Live search, priority/area filters, icebox toggle.
-- **Detail page** — clicking a card renders the ticket's markdown (headings,
-  tables, checkbox lists, code, links) as a styled page.
-- **Static snapshot** (`generate`) — `board.html` you can open via `file://`, plus
-  a markdown index table written into `tickets/README.md`.
+## Commands
 
-## Claude Code plugin
+| Command | What it does |
+| --- | --- |
+| `ticket-kit serve` | Live board (polls files ~3s); cards open a rendered detail page. |
+| `ticket-kit generate` | Rewrite the README index + static `board.html`. |
+| `ticket-kit new "<title>"` | Scaffold a ticket. `--priority --area --status --parent`. |
+| `ticket-kit check` | Validate all frontmatter; exits non-zero on problems (CI guard). |
+| `ticket-kit migrate` | Upgrade tickets to the current data schema. |
+| `ticket-kit version` | Print the kit + data-schema versions. |
 
-`ticket-kit` is also a plugin. Point Claude Code at this directory (it has a
-`.claude-plugin/plugin.json`) and you get:
+Drop a `.tickets.json` at your project root to override `title`, `ticketsDir`,
+`port`, `idPrefix`, `priorities`, or `columns`. All optional.
 
-- **`ticket-kit` skill** — orients Claude on the system, the frontmatter contract,
-  and the CLI.
-- **`ticket-author` agent** — turns an idea/bug/request into a well-formed ticket
-  (real Why/What/Acceptance, sensible area/priority, dedup check).
-- **`ticket-groomer` agent** — triages the whole board: re-ranks, sweeps statuses,
-  unblocks, promotes from icebox, answers "what should I work on next".
-- **`/tickets` command** — `serve`, `generate`, `new <desc>`, `triage`, `check`.
+## Updating ticket-kit
 
-## Updating & data safety
-
-The kit is **stateless code**; your tickets are **separate data** (`<ticketsDir>/*.md`
-+ `.tickets.json`). Updating one never touches the other — except through a declared
-migration.
-
-To update a vendored copy:
+The kit is **code**; your tickets are **data**. Updating one never touches the
+other — except through a declared migration.
 
 ```bash
-cp -r ticket-kit/src/ my-project/tools/tickets/   # re-copy the logic; data untouched
-ticket-kit check                                  # compatibility gate
-ticket-kit migrate                                # only if check says the schema is older
-ticket-kit generate                               # refresh the index/board
+cp -r ticket-kit/src my-project/tools/tickets   # re-copy the logic; data untouched
+ticket-kit check                                # compatibility gate
+ticket-kit migrate                              # only if check says the schema is older
+ticket-kit generate                             # refresh the index/board
 ```
 
-Two versions, independent:
+`KIT_VERSION` (code) and `SCHEMA_VERSION` (data contract) are independent.
+`check` is the guard: it **errors** if your data's schema is newer than the kit,
+and **prompts `migrate`** if it's older — so an update can never silently corrupt
+your tickets. Details in [`CLAUDE.md`](CLAUDE.md) § "The data contract".
 
-- **`KIT_VERSION`** — the code version (`ticket-kit version` prints it).
-- **`SCHEMA_VERSION`** — the data-contract version (ticket frontmatter + `.tickets.json`
-  shape). Your data records the version it was written in via `.tickets.json`'s
-  `schemaVersion` (absent ⇒ baseline 1).
-
-`check` is the guard: it **errors** if your data's schema is newer than the kit
-(update the kit) and **prompts `migrate`** if it's older. Breaking changes to the
-contract are only allowed alongside a registered migration — see `CLAUDE.md`
-§ "The data contract". So a breaking change can never silently corrupt your tickets;
-worst case `check` stops you and points at `migrate`.
-
-## Develop ticket-kit itself
+## Contributing
 
 ```bash
 npm install          # dev-only: typescript + @types/node (runtime needs nothing)
@@ -174,6 +122,10 @@ npm test             # node:test suite
 npm run typecheck    # tsc --noEmit
 ```
 
+Both must stay green. Keep it zero-runtime-dependency, functions ≤ 50 lines, and
+all HTML through `escapeHtml`. Breaking changes to the data contract require a
+`SCHEMA_VERSION` bump **and** a migration in the same commit — see `CLAUDE.md`.
+
 ## License
 
-MIT.
+[MIT](LICENSE) © Chad Furman.

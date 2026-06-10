@@ -12,6 +12,8 @@ export interface NewTicketOptions {
   priority?: string;
   area?: string;
   status?: string;
+  /** Optional parent ticket id — makes this a subtask of that ticket. */
+  parent?: string;
 }
 
 export function slugify(title: string): string {
@@ -47,6 +49,7 @@ export function buildTicketContent(
   const status = opts.status ?? config.columns[0]?.key ?? 'open';
   const priority = opts.priority ?? config.priorities[Math.floor(config.priorities.length / 2)] ?? 'P2';
   const area = opts.area ?? 'general';
+  const parentLine = opts.parent ? `\nparent: ${opts.parent}` : '';
   return `---
 id: ${id}
 title: ${opts.title}
@@ -55,7 +58,7 @@ priority: ${priority}
 rank: 100
 area: ${area}
 pillars: []
-blocked-by: []
+blocked-by: []${parentLine}
 created: ${today()}
 ---
 

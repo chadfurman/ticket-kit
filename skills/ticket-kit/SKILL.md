@@ -31,9 +31,13 @@ rank: 20                 # tie-breaker within a column+priority; lower = higher
 area: web                # free-form domain tag (web, engine, infra, …)
 pillars: [low-stress]    # optional project themes a ticket serves
 blocked-by: [TD-0003]    # ids this ticket waits on
+parent: TD-0002          # OPTIONAL — makes this a subtask of TD-0002
 created: 2026-06-08
 ---
 ```
+
+`parent` is the only optional field: omit it for a normal ticket; set it to a
+ticket id to make this a subtask (it nests under the parent's card on the board).
 
 Body sections, in order: `## Why`, `## What`, `## Acceptance` (checkboxes).
 

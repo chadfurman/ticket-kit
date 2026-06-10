@@ -23,8 +23,16 @@ Its version is `SCHEMA_VERSION` in `src/version.ts`. A host's data declares the
 version it was written in via `.tickets.json` → `schemaVersion` (absent ⇒ baseline 1).
 
 **Frontmatter (every ticket):** `id, title, status, priority, rank, area,
-pillars, blocked-by, created`. **Config keys:** `ticketsDir, port, idPrefix,
-priorities, columns, title, schemaVersion`.
+pillars, blocked-by, created`, plus the *optional* `parent` (a ticket id — makes
+it a subtask; the loader tolerates its absence). **Config keys:** `ticketsDir,
+port, idPrefix, priorities, columns, title, schemaVersion`.
+
+**Board conventions:** the **last (rightmost) column** is the "done" state — the
+subtask `[done/total]` badge counts children whose `status` is that column key
+(`isDoneStatus` in `lib.ts`; the live board mirrors it as `DONE_KEY` in `serve.ts`,
+which must agree). Subtask nesting is **one level deep**: a child nests under a
+top-level parent; a grandchild or a parent cycle degrades to a loose card and is
+flagged by `check`.
 
 ### Change classes — know which you're making
 

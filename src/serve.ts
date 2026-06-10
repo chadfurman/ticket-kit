@@ -25,7 +25,7 @@ import {
   buildColumnHtml,
 } from './lib.ts';
 import { renderMarkdown } from './markdown.ts';
-import { DETAIL_CSS, buildDetailPage } from './detail.ts';
+import { DETAIL_CSS, buildDetailPage, type TicketRelations } from './detail.ts';
 
 const ICEBOX_COLUMN = { key: 'icebox', label: 'Icebox' };
 
@@ -81,25 +81,43 @@ ${BOARD_FILTER_SCRIPT}
 
 const COLUMNS = ${JSON.stringify(columns)};
 const CHIP_STYLES = ${JSON.stringify(chipStyleMap(config))};
+// "done" = the last (rightmost) column key — mirrors lib.ts isDoneStatus; the two must agree.
+const DONE_KEY = ${JSON.stringify(config.columns[config.columns.length - 1]?.key ?? '')};
 
 function escHtml(s) {
   return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 }
 
-function buildCardHtml(t) {
+// Mirror of lib.ts buildSubtasksHtml — keep these two renderings identical.
+function subtasksHtml(children) {
+  if (!children.length) return '';
+  const rows = children.map((c) => {
+    const done = c.status === DONE_KEY;
+    return \`<div class="subtask\${done ? ' done' : ''}"><span class="st-box" aria-label="\${done ? 'done' : 'todo'}">\${done ? '✓' : '○'}</span><span class="st-id">\${escHtml(c.id)}</span> <span class="st-title">\${escHtml(c.title)}</span></div>\`;
+  }).join('');
+  return \`<div class="subtasks">\${rows}</div>\`;
+}
+
+function buildCardHtml(t, children) {
+  children = children || [];
   const pillars = t.pillars.map((p) => \`<span class="tag">\${escHtml(p)}</span>\`).join('');
   const blocked = t.blockedBy.length > 0
     ? \`<div class="blocked">blocked-by: \${escHtml(t.blockedBy.join(', '))}</div>\`
+    : '';
+  const doneCount = children.filter((c) => c.status === DONE_KEY).length;
+  const badge = children.length
+    ? \` <span class="subtask-badge" title="\${doneCount} of \${children.length} subtasks done">\${doneCount}/\${children.length}</span>\`
     : '';
   return \`<a class="card" href="/ticket/\${escHtml(t.id)}" data-priority="\${escHtml(t.priority)}" data-area="\${escHtml(t.area)}">
   <div class="card-header">
     <span class="card-id">\${escHtml(t.id)}</span>
     <span class="chip" style="\${escHtml(CHIP_STYLES[t.priority] ?? '')}">\${escHtml(t.priority)}</span>
   </div>
-  <div class="card-title">\${escHtml(t.title)}</div>
+  <div class="card-title">\${escHtml(t.title)}\${badge}</div>
   <div class="card-area">\${escHtml(t.area)}</div>
   <div class="card-pillars">\${pillars}</div>
   \${blocked}
+  \${subtasksHtml(children)}
 </a>\`;
 }
 
@@ -107,6 +125,20 @@ function renderBoard(tickets) {
   const board = document.getElementById('board');
   if (!board) return;
   const scrollTop = board.scrollTop;
+  const byId = {};
+  for (const t of tickets) byId[t.id] = t;
+  const kids = {};
+  for (const t of tickets) {
+    if (t.parent && byId[t.parent]) (kids[t.parent] = kids[t.parent] || []).push(t);
+  }
+  // Mirror of lib.ts: nest only under a top-level parent, so grandchildren and
+  // cycle members degrade to a loose card instead of vanishing.
+  const isTopLevel = (t) => !t.parent || !byId[t.parent];
+  const isNested = (t) => {
+    if (!t.parent) return false;
+    const p = byId[t.parent];
+    return p && isTopLevel(p);
+  };
   for (const col of COLUMNS) {
     let colEl = board.querySelector(\`[data-status="\${col.key}"]\`);
     if (!colEl) {
@@ -115,9 +147,11 @@ function renderBoard(tickets) {
       colEl.dataset.status = col.key;
       board.appendChild(colEl);
     }
-    const colTickets = tickets.filter((t) => t.status === col.key);
+    const colTickets = tickets.filter((t) => t.status === col.key && !isNested(t));
+    // Only nested children render under a card — so cycle/self members appear exactly once.
+    const childrenFor = (t) => (kids[t.id] || []).filter(isNested);
     colEl.innerHTML = \`<div class="col-header">\${escHtml(col.label)} <span class="col-count">\${colTickets.length}</span></div>
-  <div class="cards">\${colTickets.map(buildCardHtml).join('')}</div>\`;
+  <div class="cards">\${colTickets.map((t) => buildCardHtml(t, childrenFor(t))).join('')}</div>\`;
   }
   board.scrollTop = scrollTop;
   stampDataAttrs(tickets);
@@ -160,15 +194,21 @@ function serveTicketDetail(
   config: TicketKitConfig,
   id: string,
 ): void {
-  const ticket = loadSorted(dir, config).find((t) => t.id === id);
+  const all = loadSorted(dir, config);
+  const ticket = all.find((t) => t.id === id);
   if (!ticket) {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Ticket not found');
     return;
   }
+  const parent = ticket.parent ? all.find((t) => t.id === ticket.parent) : undefined;
+  const relations: TicketRelations = {
+    children: all.filter((t) => t.parent === ticket.id),
+    ...(parent ? { parent } : {}),
+  };
   const markdown = fs.readFileSync(path.join(dir, ticket.filename), 'utf8');
   res.writeHead(200, { 'Content-Type': 'text/html' });
-  res.end(buildDetailPage(ticket, renderMarkdown(markdown), config, BOARD_CSS, DETAIL_CSS));
+  res.end(buildDetailPage(ticket, renderMarkdown(markdown), config, BOARD_CSS, DETAIL_CSS, relations));
 }
 
 function makeRouter(dir: string, config: TicketKitConfig) {

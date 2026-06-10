@@ -57,3 +57,41 @@ test('check: flags invalid status, invalid priority, and duplicate ids', () => {
   assert.match(messages, /duplicate id TD-0001/);
   fs.rmSync(root, { recursive: true, force: true });
 });
+
+test('check: flags a parent that references a non-existent ticket, accepts a real one', () => {
+  const root = tmpRoot();
+  const dir = path.join(root, 'tickets');
+  fs.mkdirSync(dir);
+  const fm = (id: string, extra = ''): string =>
+    `---\nid: ${id}\ntitle: t\nstatus: open\npriority: P1\nrank: 1\narea: a\npillars: []\nblocked-by: []\n${extra}created: 2026-06-08\n---\nbody\n`;
+  fs.writeFileSync(path.join(dir, 'TD-0001-a.md'), fm('TD-0001'));
+  fs.writeFileSync(path.join(dir, 'TD-0002-b.md'), fm('TD-0002', 'parent: TD-0001\n')); // valid
+  fs.writeFileSync(path.join(dir, 'TD-0003-c.md'), fm('TD-0003', 'parent: TD-9999\n')); // dangling
+
+  const messages = checkTickets(root, DEFAULT_CONFIG).map((p) => p.message).join('\n');
+  assert.match(messages, /parent "TD-9999" does not exist/);
+  assert.doesNotMatch(messages, /TD-0001.*does not exist/);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('check: flags a parent cycle and a grandchild (nesting is one level deep)', () => {
+  const root = tmpRoot();
+  const dir = path.join(root, 'tickets');
+  fs.mkdirSync(dir);
+  const fm = (id: string, extra = ''): string =>
+    `---\nid: ${id}\ntitle: t\nstatus: open\npriority: P1\nrank: 1\narea: a\npillars: []\nblocked-by: []\n${extra}created: 2026-06-08\n---\nbody\n`;
+  // cycle: TD-0001 ↔ TD-0002
+  fs.writeFileSync(path.join(dir, 'TD-0001-a.md'), fm('TD-0001', 'parent: TD-0002\n'));
+  fs.writeFileSync(path.join(dir, 'TD-0002-b.md'), fm('TD-0002', 'parent: TD-0001\n'));
+  // grandchild chain: TD-0003 ← TD-0004 ← TD-0005
+  fs.writeFileSync(path.join(dir, 'TD-0003-c.md'), fm('TD-0003'));
+  fs.writeFileSync(path.join(dir, 'TD-0004-d.md'), fm('TD-0004', 'parent: TD-0003\n'));
+  fs.writeFileSync(path.join(dir, 'TD-0005-e.md'), fm('TD-0005', 'parent: TD-0004\n'));
+
+  const messages = checkTickets(root, DEFAULT_CONFIG).map((p) => p.message).join('\n');
+  assert.match(messages, /forms a cycle/);
+  assert.match(messages, /nesting is only one level deep/);
+  // a valid first-level subtask (TD-0004 → TD-0003) must NOT be flagged
+  assert.doesNotMatch(messages, /parent "TD-0003" is itself a subtask/);
+  fs.rmSync(root, { recursive: true, force: true });
+});
