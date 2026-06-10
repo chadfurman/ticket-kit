@@ -1,21 +1,34 @@
 # ticket-kit
 
-A **file-based ticket system** you drop into any project. Every ticket is a
-markdown file with YAML frontmatter; a live neon board renders them; a tiny
-zero-dependency CLI creates, validates, and serves them. The board is read-only —
-changes happen by editing files (by you or by the AI), so your git history *is*
-the audit log. It also ships as a **Claude Code plugin** so the AI can author and
-groom tickets in any repo.
+An **AI-first ticket system**: Claude authors and grooms your tickets, you watch
+them move on a live board. Every ticket is a markdown file with YAML frontmatter,
+a tiny zero-dependency CLI serves a neon board, and the board is **read-only** —
+changes happen by editing files (by the AI or by you), so your git history *is*
+the audit log. It installs as a Claude Code plugin and drops into any project.
 
 ## Quick start
 
 Requires Node ≥ 22 (built-in TypeScript type-stripping — nothing to `npm install`
-to run it).
+to run it). Grab the repo:
 
 ```bash
 git clone https://github.com/chadfurman/ticket-kit
 cd ticket-kit
-node src/cli.ts new "my first ticket"   # scaffold a ticket
+```
+
+Install the plugin so Claude can manage the tickets — both are slash commands in
+Claude Code:
+
+```
+/plugin marketplace add chadfurman/ticket-kit
+/plugin install ticket-kit@ticket-kit
+```
+
+Now make a ticket — ask Claude *"make a ticket to add dark mode"*, or scaffold one
+yourself — then start the board:
+
+```bash
+node src/cli.ts new "my first ticket"   # or let the ticket-author agent do it
 node src/cli.ts serve                    # → http://localhost:4317
 ```
 
@@ -40,22 +53,16 @@ Optionally add scripts to your `package.json`:
 { "scripts": { "tickets": "node tools/tickets/cli.ts", "tickets:serve": "node tools/tickets/cli.ts serve" } }
 ```
 
-## Install the plugin (private repo)
+## The plugin
 
-The plugin bundles a `/tickets` command and the `ticket-author` /
-`ticket-groomer` agents. In Claude Code, add this repo as a plugin marketplace and
-install it — both are slash commands:
+Installed in the quick-start above, the plugin gives you a `/tickets` command and
+two agents: **ticket-author** (turns an idea or bug into a well-formed ticket) and
+**ticket-groomer** (triages the board — re-ranks, unblocks, answers "what should I
+work on next").
 
-```
-/plugin marketplace add chadfurman/ticket-kit
-/plugin install ticket-kit@ticket-kit
-```
-
-It works from a **private** repo: the GitHub source is cloned with your existing
-`git` / `gh` credentials, so any repo you can access, you can install.
-
-Then ask Claude to "make a ticket for X" or "what should I work on next" and the
-agents take over.
+It works from a **private** repo: `/plugin marketplace add` clones the GitHub
+source with your existing `git` / `gh` credentials, so any repo you can access,
+you can install.
 
 ## The ticket format
 
