@@ -3,3 +3,15 @@ node_modules/
 .DS_Store
 # board.html is generated from the .md files
 tickets/board.html
+
+# === change-factory (shared mode) ===
+# State is COMMITTED in shared mode (.claude/agents/, .claude/agent-memory/,
+# .claude/settings.json, .claude/agent-lint.config, .claude/.change-factory-version,
+# .claude/validator/CLAUDE.md). Only session/cache state + the per-user opt-in are ignored.
+.claude/settings.local.json
+.claude/sessions/
+.claude/cache/
+.claude/tmp/
+.claude/*.log
+.claude/*.tmp
+.claude/.change-factory-doctor

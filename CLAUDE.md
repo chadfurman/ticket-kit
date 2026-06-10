@@ -75,3 +75,17 @@ priorities, columns, title, schemaVersion`.
 
 `npm test` runs the `node:test` suite. `npm run typecheck` runs `tsc --noEmit`.
 Both must pass before a release or a re-vendor.
+
+## change-factory experts
+
+This repo is set up with change-factory (shared mode). Two per-repo experts own
+`src/` — consult the relevant one before changing its files:
+
+- **ticket-kit-core** — the versioned data contract (`version`, `migrate`, `check`,
+  `config`, `lib`, `new`, `cli`). Enforces the schema-bump + migration rules above.
+- **ticket-kit-board** — the rendering pipeline (`serve`, `generate`, `markdown`,
+  `detail`) and the `escapeHtml` XSS boundary.
+
+Run `/cf` to orient, `/cf "build X"` to route substantive work through the chain,
+or `/cf upgrade` to health-check the experts. Experts + memory live under
+`.claude/agents/` and `.claude/agent-memory/`.
