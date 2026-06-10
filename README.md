@@ -42,22 +42,20 @@ Optionally add scripts to your `package.json`:
 
 ## Install the plugin (private repo)
 
-The plugin (a `/tickets` command + `ticket-author` / `ticket-groomer` agents)
-installs from this repo as its own marketplace — the same way change-factory does,
-and it works from a **private** repo because the GitHub source clones through your
-`gh` auth. In `~/.claude/settings.json`:
+The plugin bundles a `/tickets` command and the `ticket-author` /
+`ticket-groomer` agents. In Claude Code, add this repo as a plugin marketplace and
+install it — both are slash commands:
 
-```jsonc
-{
-  "extraKnownMarketplaces": {
-    "ticket-kit": { "source": { "source": "github", "repo": "chadfurman/ticket-kit" } }
-  },
-  "enabledPlugins": { "ticket-kit@ticket-kit": true }
-}
+```
+/plugin marketplace add chadfurman/ticket-kit
+/plugin install ticket-kit@ticket-kit
 ```
 
-Then run `/reload-plugins`. Ask Claude to "make a ticket for X" or "what should I
-work on next" and the agents take over.
+It works from a **private** repo: the GitHub source is cloned with your existing
+`git` / `gh` credentials, so any repo you can access, you can install.
+
+Then ask Claude to "make a ticket for X" or "what should I work on next" and the
+agents take over.
 
 ## The ticket format
 
