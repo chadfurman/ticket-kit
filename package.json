@@ -1,6 +1,6 @@
 {
   "name": "ticket-kit",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Markdown tickets with a live neon board, a zero-dependency CLI, and AI helpers. Clone or copy into any project.",
   "type": "module",
   "bin": {

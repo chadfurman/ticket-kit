@@ -11,7 +11,7 @@
  * (`schemaVersion`). Absent ⇒ baseline 1 (data written before versioning existed).
  */
 
-export const KIT_VERSION = '0.3.0';
+export const KIT_VERSION = '0.3.1';
 
 /** Current data-contract version this kit reads/writes. */
 export const SCHEMA_VERSION = 1;

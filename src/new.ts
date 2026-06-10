@@ -46,6 +46,11 @@ export function buildTicketContent(
   opts: NewTicketOptions,
   config: TicketKitConfig,
 ): string {
+  // `parent` is interpolated into frontmatter — require a clean ticket id so a
+  // newline-bearing value can't inject extra frontmatter lines.
+  if (opts.parent !== undefined && !new RegExp(`^${config.idPrefix}-\\d{4}$`).test(opts.parent)) {
+    throw new Error(`parent must be a ticket id like ${config.idPrefix}-0001 (got "${opts.parent}")`);
+  }
   const status = opts.status ?? config.columns[0]?.key ?? 'open';
   const priority = opts.priority ?? config.priorities[Math.floor(config.priorities.length / 2)] ?? 'P2';
   const area = opts.area ?? 'general';

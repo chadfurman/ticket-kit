@@ -4,7 +4,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { DEFAULT_CONFIG, mergeConfig } from '../src/config.ts';
-import { slugify, nextTicketNumber, createTicket } from '../src/new.ts';
+import { slugify, nextTicketNumber, createTicket, buildTicketContent } from '../src/new.ts';
 import { checkTickets } from '../src/check.ts';
 
 test('mergeConfig: overrides only provided fields, keeps defaults', () => {
@@ -94,4 +94,17 @@ test('check: flags a parent cycle and a grandchild (nesting is one level deep)',
   // a valid first-level subtask (TD-0004 → TD-0003) must NOT be flagged
   assert.doesNotMatch(messages, /parent "TD-0003" is itself a subtask/);
   fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('buildTicketContent: rejects a parent that is not a clean ticket id (frontmatter injection)', () => {
+  assert.throws(
+    () => buildTicketContent('TD-0001', { title: 't', parent: 'TD-0002\nstatus: done' }, DEFAULT_CONFIG),
+    /parent must be a ticket id/,
+  );
+  assert.throws(
+    () => buildTicketContent('TD-0001', { title: 't', parent: 'garbage' }, DEFAULT_CONFIG),
+    /parent must be a ticket id/,
+  );
+  const ok = buildTicketContent('TD-0001', { title: 't', parent: 'TD-0002' }, DEFAULT_CONFIG);
+  assert.match(ok, /parent: TD-0002/);
 });

@@ -67,7 +67,12 @@ function runNew(root: string, args: string[]): void {
   if (flags['area']) opts.area = flags['area'];
   if (flags['status']) opts.status = flags['status'];
   if (flags['parent']) opts.parent = flags['parent'];
-  console.log(`✓ wrote ${createTicket(root, config, opts)}`);
+  try {
+    console.log(`✓ wrote ${createTicket(root, config, opts)}`);
+  } catch (err) {
+    console.error(`ticket-kit new: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  }
 }
 
 function runCheck(root: string): void {
