@@ -18,5 +18,8 @@ Interpret the argument (`$ARGUMENTS`) and act:
 - **`check`** → run `ticket-kit check` and report problems (non-zero exit = CI fail).
 
 If the CLI isn't wired into an npm script, run it directly with
-`node <path-to>/ticket-kit/src/cli.ts <verb>`. Locate the config (`.tickets.json`)
-and the tickets directory before acting.
+`node --experimental-transform-types "$CLAUDE_PLUGIN_ROOT/src/cli.ts" <verb>` (the
+`--experimental-transform-types` flag is **required** — it matches `package.json`), or
+`node --experimental-transform-types <path-to>/ticket-kit/src/cli.ts <verb>` from a
+local checkout. Locate the config (`.tickets.json`) and the tickets directory before
+acting.

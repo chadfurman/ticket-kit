@@ -8,61 +8,54 @@ the audit log. It installs as a Claude Code plugin and drops into any project.
 
 ## Quick start
 
-Requires Node ≥ 22 (built-in TypeScript type-stripping — nothing to `npm install`
-to run it). Grab the repo:
-
-```bash
-git clone https://github.com/chadfurman/ticket-kit
-cd ticket-kit
-```
-
-Install the plugin so Claude can manage the tickets — both are slash commands in
-Claude Code:
+In Claude Code, add this repo as a plugin marketplace and install it — it works
+from a **private** repo (it clones with your `git` / `gh` credentials):
 
 ```
 /plugin marketplace add chadfurman/ticket-kit
 /plugin install ticket-kit@ticket-kit
 ```
 
-Now make a ticket — ask Claude *"make a ticket to add dark mode"*, or scaffold one
-yourself — then start the board:
+Then, in the repo you want to track, set it up and drive it with the AI:
 
-```bash
-node src/cli.ts new "my first ticket"   # or let the ticket-author agent do it
-node src/cli.ts serve                    # → http://localhost:4317
+```
+/ticket-kit:install                  # scaffold tickets/, pick a view mode, and
+                                     # offer to disable any other tracker here
+"add a ticket to add dark mode"      # the ticket-author agent writes it
+"add a subtask: the toggle UI"       # a child ticket, nested under the parent
+"let's start on dark mode"           # the agents groom it and get to work
 ```
 
-Open **http://localhost:4317** and you're looking at the live, read-only board:
+That's the whole loop — the AI keeps `tickets/*.md` in sync. The **board is a
+bonus**:
 
-![ticket-kit's board running on ticket-kit's own tickets — note the nested subtasks and the 2/3 badge](docs/board.png)
-
-## Install into a project
-
-ticket-kit is **stateless logic** — copy `src/` in and the host owns its data
-(`tickets/*.md` + an optional `.tickets.json`):
-
-```bash
-cp -r ticket-kit/src my-project/tools/tickets
-cd my-project
-node tools/tickets/cli.ts serve          # board for THIS project's tickets/
+```
+/ticket-kit:serve                    # a static dashboard, or a live server
 ```
 
-Optionally add scripts to your `package.json`:
+![ticket-kit's board running on ticket-kit's own tickets — nested subtasks and a 2/3 badge](docs/board.png)
 
-```json
-{ "scripts": { "tickets": "node tools/tickets/cli.ts", "tickets:serve": "node tools/tickets/cli.ts serve" } }
-```
+**Pairs well with change-factory** — let change-factory run the change while
+ticket-kit tracks the work. (Running the board needs Node ≥ 22; the plugin ships
+the CLI, so there's nothing to `npm install`.)
 
 ## The plugin
 
-Installed in the quick-start above, the plugin gives you a `/tickets` command and
-two agents: **ticket-author** (turns an idea or bug into a well-formed ticket) and
-**ticket-groomer** (triages the board — re-ranks, unblocks, answers "what should I
-work on next").
+The plugin ships the CLI and the AI surface. Its commands:
 
-It works from a **private** repo: `/plugin marketplace add` clones the GitHub
-source with your existing `git` / `gh` credentials, so any repo you can access,
-you can install.
+| Command | What it does |
+| --- | --- |
+| `/ticket-kit:install` | Set up ticket-kit in a repo (scaffold, view mode, tracker negotiation). Re-run to upgrade. |
+| `/ticket-kit:serve` | Show the board — a static dashboard or a live server. |
+| `/ticket-kit:upgrade` | After the plugin updates, reconcile this repo's tickets (`check` → `migrate` → `generate`). |
+| `/tickets` | Operate the board directly — `new`, `triage`, `generate`, `check`. |
+
+…plus two agents: **ticket-author** (turns an idea or bug into a well-formed
+ticket) and **ticket-groomer** (triages the board — re-ranks, unblocks, answers
+"what should I work on next").
+
+**Prefer no plugin?** Copy `src/` into your repo and run the CLI directly —
+`node path/to/cli.ts <verb>` — the host still owns its `tickets/*.md` + `.tickets.json`.
 
 ## The ticket format
 
@@ -104,15 +97,15 @@ Drop a `.tickets.json` at your project root to override `title`, `ticketsDir`,
 
 ## Updating ticket-kit
 
-The kit is **code**; your tickets are **data**. Updating one never touches the
-other — except through a declared migration.
+The kit is **code** (it travels with the plugin); your tickets are **data**.
+Updating one never touches the other — except through a declared migration.
 
-```bash
-cp -r ticket-kit/src my-project/tools/tickets   # re-copy the logic; data untouched
-ticket-kit check                                # compatibility gate
-ticket-kit migrate                              # only if check says the schema is older
-ticket-kit generate                             # refresh the index/board
-```
+1. Update the plugin (`/plugin` → update `ticket-kit`).
+2. Run **`/ticket-kit:upgrade`** in your repo — it runs `check`, `migrate`s if your
+   data schema is older, and regenerates the board.
+
+> No plugin? Re-copy `src/`, then `ticket-kit check` → `migrate` (only if check says
+> the schema is older) → `generate`.
 
 `KIT_VERSION` (code) and `SCHEMA_VERSION` (data contract) are independent.
 `check` is the guard: it **errors** if your data's schema is newer than the kit,

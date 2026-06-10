@@ -53,6 +53,15 @@ Body sections, in order: `## Why`, `## What`, `## Acceptance` (checkboxes).
 After editing any ticket, run `generate` so the README index stays current, and
 `check` so frontmatter stays valid.
 
+## Plugin commands (user-invoked)
+
+- `/ticket-kit:install` — set up ticket-kit in a repo (scaffold, pick a view mode,
+  offer to disable another tracker). Re-running upgrades.
+- `/ticket-kit:serve` — show the board (static dashboard or live server).
+- `/ticket-kit:upgrade` — after the plugin updates, reconcile the repo's data
+  (`check` → `migrate` if older → `generate`).
+- `/tickets [verb]` — operate the board directly (`new`, `triage`, `generate`, `check`).
+
 ## When to dispatch which agent
 
 - **Creating a ticket from an idea / bug / request** → dispatch **ticket-author**.

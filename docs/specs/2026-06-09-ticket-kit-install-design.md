@@ -33,6 +33,15 @@ Run inside a host repo. It:
    On no: do nothing (advisory only). Never disable without the confirm.
 4. **Prints next moves:** "add a ticket for X" → "add a subtask" → `/ticket-kit:serve`.
 
+## Upgrade path
+
+Re-running `/ticket-kit:install` in an already-set-up repo is an **upgrade**: skip
+scaffolding and run `check` → `migrate` (if the data schema is older) → `generate`.
+A dedicated `/ticket-kit:upgrade` (`commands/upgrade.md`) does just that path — for
+when the plugin's code updated and the repo's data needs reconciling. If `check`
+says the data is *newer* than the kit, tell the user to update the plugin and leave
+the data alone.
+
 ## `/ticket-kit:serve` (new `commands/serve.md`)
 
 Convenience wrapper: **static** → regenerate `board.html` and tell the user to open
