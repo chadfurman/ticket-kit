@@ -13,7 +13,10 @@
         "name": "Chad Furman"
       },
       "homepage": "https://github.com/chadfurman/ticket-kit",
-      "source": "./"
+      "source": {
+        "source": "github",
+        "repo": "chadfurman/ticket-kit"
+      }
     }
   ]
 }
