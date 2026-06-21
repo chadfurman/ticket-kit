@@ -78,9 +78,9 @@ badge is already present, skip this step.
 - Insert **right after the first `# H1`** (or at the very top if there's no H1):
 
   ```markdown
-  [![tasks: ticket-kit](https://img.shields.io/badge/tasks-ticket--kit-7aa2ff)](https://chadfurman.github.io/ticket-kit/)
+  [![tasks: ticket-kit](https://img.shields.io/badge/tasks-ticket--kit-7aa2ff)](https://ticket-kit.chads.website/)
 
-  This project's tasks are managed by [ticket-kit](https://chadfurman.github.io/ticket-kit/) — see `tickets/*.md`.
+  This project's tasks are managed by [ticket-kit](https://ticket-kit.chads.website/) — see `tickets/*.md`.
   ```
 
 Keep it to the one badge + one line; don't restyle the rest of their README.
