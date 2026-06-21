@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ticket-kit — your tickets are just files</title>
+<meta name="description" content="An AI-first ticket system for Claude Code. Claude writes and grooms markdown tickets in your repo; you watch them move on a neon board. Your git history is the audit log." />
+<meta property="og:title" content="ticket-kit — your tickets are just files" />
+<meta property="og:description" content="AI-first, file-based, zero-dependency tickets for Claude Code. The board is a bonus." />
+<meta property="og:image" content="board.png" />
+<meta name="theme-color" content="#05060f" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <span class="wordmark">ticket-kit<span class="caret">▸</span></span>
+    <span class="nav-links">
+      <a href="#loop" class="hide-sm">the loop</a>
+      <a href="#board" class="hide-sm">the board</a>
+      <a href="#format" class="hide-sm">the format</a>
+      <a class="gh-pill" href="https://github.com/chadfurman/ticket-kit">GitHub →</a>
+    </span>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">AI-first · zero-dependency · file-based</p>
+    <h1>Your tickets are just files. <span class="glow">The board is a bonus.</span></h1>
+    <p class="lede">An AI-first ticket system for Claude Code. Claude authors and grooms
+      markdown tickets right in your repo; you watch them move on a neon board. Every
+      change is a file edit, so your git history <em>is</em> the audit log.</p>
+
+    <div class="cmds">
+      <div class="cmd">
+        <span class="prompt">/</span>
+        <code>plugin marketplace add chadfurman/ticket-kit</code>
+        <button class="copy" data-copy="/plugin marketplace add chadfurman/ticket-kit">copy</button>
+      </div>
+      <div class="cmd">
+        <span class="prompt">/</span>
+        <code>plugin install ticket-kit@ticket-kit</code>
+        <button class="copy" data-copy="/plugin install ticket-kit@ticket-kit">copy</button>
+      </div>
+    </div>
+
+    <!-- signature: a ticket is a file; the board is a view of it -->
+    <div class="signature">
+      <div class="transform">
+        <div class="tk-file">
+          <div class="fname"><span class="dot r"></span><span class="dot a"></span><span class="dot g"></span>&nbsp; tickets/TD-0001.md</div>
+<pre><span class="dash">---</span>
+<span class="k">id</span>: <span class="v">TD-0001</span>
+<span class="k">title</span>: <span class="v">Set up ticket-kit</span>
+<span class="k">status</span>: <span class="v">in-progress</span>
+<span class="k">priority</span>: <span class="v">P0</span>
+<span class="k">area</span>: <span class="v">web</span>
+<span class="dash">---</span></pre>
+        </div>
+
+        <div class="arrow"><span>→</span><small>a view</small></div>
+
+        <div class="tk-card">
+          <div class="meta"><span class="id">TD-0001</span><span class="chip p0">P0</span></div>
+          <div class="ttl">Set up ticket-kit</div>
+          <div class="foot">
+            <span class="badge"><span class="pulse"></span> 1 / 3 done</span>
+            <span>web</span>
+          </div>
+          <div class="sub-rows">
+            <div class="sub-row done"><span class="tick">✓</span><span>scaffold tickets/</span></div>
+            <div class="sub-row"><span class="tick"></span><span>pick a view mode</span></div>
+            <div class="sub-row"><span class="tick"></span><span>add the badge</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="loop">
+  <div class="wrap">
+    <p class="eyebrow">the loop</p>
+    <h2 class="section-head">You talk. The agents write the files.</h2>
+    <p class="section-sub">There's no form to fill out and no app to switch to. You describe
+      the work; ticket-kit's agents keep <code>tickets/*.md</code> in sync.</p>
+
+    <div class="loop-list">
+      <div class="turn">
+        <div class="you"><span class="who">you ▸</span> "add a ticket to add dark mode"</div>
+        <div class="ai"><span class="arw">↳</span><span class="agent">ticket-author</span> writes <span class="tid">TD-0007</span></div>
+      </div>
+      <div class="turn">
+        <div class="you"><span class="who">you ▸</span> "add a subtask: the toggle UI"</div>
+        <div class="ai"><span class="arw">↳</span> a child ticket, nested under <span class="tid">TD-0007</span></div>
+      </div>
+      <div class="turn">
+        <div class="you"><span class="who">you ▸</span> "what should I work on next?"</div>
+        <div class="ai"><span class="arw">↳</span><span class="agent">ticket-groomer</span> triages, re-ranks, and unblocks</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="board">
+  <div class="wrap">
+    <p class="eyebrow">the board</p>
+    <h2 class="section-head">A neon board you read, not edit.</h2>
+    <p class="section-sub">A zero-dependency CLI serves it — static dashboard or a live
+      server with ~3s updates. Cards nest subtasks and carry a <code>[done/total]</code> badge.
+      It's read-only on purpose: changes happen in the files.</p>
+
+    <div class="board-frame">
+      <div class="bar"><span class="dot r"></span><span class="dot a"></span><span class="dot g"></span><span class="url">localhost:4317</span></div>
+      <img src="board.png" alt="ticket-kit's board running on its own tickets — columns of cards with nested subtasks and a done badge" loading="lazy" />
+    </div>
+  </div>
+</section>
+
+<section id="why">
+  <div class="wrap">
+    <p class="eyebrow">why it's different</p>
+    <h2 class="section-head">Tracking that lives where your code does.</h2>
+    <div class="why-grid">
+      <div class="why-card">
+        <div class="ico">*.md</div>
+        <h3>Plain markdown</h3>
+        <p>Every ticket is a markdown file with YAML frontmatter. Grep it, diff it, edit
+          it in your editor — no database, no export.</p>
+      </div>
+      <div class="why-card">
+        <div class="ico">git log</div>
+        <h3>Git is the audit log</h3>
+        <p>Tickets change by editing files, so every status move, re-rank, and edit is a
+          commit. Your history already answers "who, when, why".</p>
+      </div>
+      <div class="why-card">
+        <div class="ico">0 deps</div>
+        <h3>Zero dependencies</h3>
+        <p>The CLI is Node built-ins only — nothing to <code>npm install</code> to run the
+          board. It drops into any repo and stays out of your lockfile.</p>
+      </div>
+      <div class="why-card">
+        <div class="ico">+cf</div>
+        <h3>Pairs with change-factory</h3>
+        <p>Let <a href="https://github.com/fossas/change-factory">change-factory</a> run
+          the change while ticket-kit tracks the work. Two tools, one loop.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="format">
+  <div class="wrap">
+    <p class="eyebrow">the format</p>
+    <h2 class="section-head">One file. Nothing you can't read.</h2>
+    <p class="section-sub">Add a <code>parent:</code> and a ticket nests as a subtask;
+      leave it off and it's a top-level card. That's the whole schema.</p>
+
+    <div class="fmt">
+      <div class="bar">tickets/TD-0002.md</div>
+<pre><span class="dash">---</span>
+<span class="k">id</span>: <span class="v">TD-0002</span>              <span class="cmt"># PREFIX-NNNN, matches the filename</span>
+<span class="k">title</span>: <span class="v">Add the toggle UI</span>
+<span class="k">status</span>: <span class="v">open</span>          <span class="cmt"># a column key, or "icebox"</span>
+<span class="k">priority</span>: <span class="v">P1</span>           <span class="cmt"># P0 = most urgent</span>
+<span class="k">rank</span>: <span class="v">20</span>               <span class="cmt"># tie-breaker; lower floats higher</span>
+<span class="k">area</span>: <span class="v">web</span>
+<span class="k">parent</span>: <span class="v">TD-0007</span>         <span class="cmt"># OPTIONAL — makes this a subtask</span>
+<span class="k">created</span>: <span class="v">2026-06-21</span>
+<span class="dash">---</span></pre>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span class="mk">ticket-kit<span style="color:var(--beam)">▸</span></span>
+    <span class="meta">
+      <a href="https://github.com/chadfurman/ticket-kit">github.com/chadfurman/ticket-kit</a>
+      <span>Node ≥ 22</span>
+      <span>MIT © Chad Furman</span>
+    </span>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(btn.dataset.copy).then(function () {
+        var was = btn.textContent;
+        btn.textContent = 'copied';
+        btn.classList.add('copied');
+        setTimeout(function () { btn.textContent = was; btn.classList.remove('copied'); }, 1400);
+      });
+    });
+  });
+</script>
+</body>
+</html>

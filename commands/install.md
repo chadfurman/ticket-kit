@@ -67,7 +67,25 @@ it (always a **project-scoped** path under `./.claude/`, NEVER the user's global
 Then add a `CLAUDE.md` line: "Work items live in ticket-kit (`tickets/*.md`), not
 <tracker>." If the user declines (or you found nothing), change nothing.
 
-### 4. Tell the user what's next
+### 4. Mark the README — "tasks managed by ticket-kit"
+
+Add a small badge + one line near the top of the **host** repo's README so anyone
+landing on it sees where the work lives. **Idempotent:** if a `tasks-ticket--kit`
+badge is already present, skip this step.
+
+- Find the README (`README.md`, else `README.rst`/`readme.*`). If none exists, offer
+  to create a minimal one — don't force it.
+- Insert **right after the first `# H1`** (or at the very top if there's no H1):
+
+  ```markdown
+  [![tasks: ticket-kit](https://img.shields.io/badge/tasks-ticket--kit-7aa2ff)](https://chadfurman.github.io/ticket-kit/)
+
+  This project's tasks are managed by [ticket-kit](https://chadfurman.github.io/ticket-kit/) — see `tickets/*.md`.
+  ```
+
+Keep it to the one badge + one line; don't restyle the rest of their README.
+
+### 5. Tell the user what's next
 
 Print the AI-first loop:
 - "add a ticket for <X>" → the **ticket-author** agent writes it
