@@ -20,13 +20,20 @@ const PLACEHOLDER = '\0';
  *
  * The URL arrives already HTML-escaped (renderInline escapes before linkifying),
  * so decode the few entities that could hide a scheme's `:` before testing.
+ *
+ * Browsers strip ASCII tab/newline/CR from anywhere in a URL and trim leading
+ * C0 controls/spaces before resolving it, so a scheme broken up by a control
+ * char (`java<TAB>script:`) or hidden behind a leading one (`\x01javascript:`)
+ * would slip past a naive scheme check yet still execute. Strip the same set
+ * before testing — `.trim()` alone leaves embedded chars and C0 controls below
+ * `\x09`. The original (untouched) URL is still what we return when it's safe.
  */
 function safeUrl(escapedUrl: string): string {
   const decoded = escapedUrl
     .replace(/&amp;/g, '&')
     .replace(/&#0*58;?/g, ':')
     .replace(/&colon;/gi, ':')
-    .trim();
+    .replace(/[\x00-\x20\x7f]+/g, '');
   // No scheme (relative path / anchor / query) → safe.
   if (!/^[a-z][a-z0-9+.-]*:/i.test(decoded)) return escapedUrl;
   // Has a scheme → allow only a known-safe set.

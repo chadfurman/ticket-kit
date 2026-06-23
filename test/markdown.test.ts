@@ -30,6 +30,23 @@ test('renderInline: dangerous link schemes are neutralized (no XSS)', () => {
   assert.doesNotMatch(renderInline('[x](javascript:alert(1))'), /href="[^"]*javascript/i);
 });
 
+test('renderInline: control chars cannot smuggle a scheme past the check', () => {
+  // Browsers strip ASCII whitespace/control chars from a URL before resolving
+  // it, so a scheme broken up by — or prefixed with — a control char still
+  // executes once the browser normalizes it. The check must strip the same
+  // chars before testing, not rely on `.trim()` (which leaves C0 controls).
+  // Tab embedded inside the scheme: `java<TAB>script:` → javascript: in a browser.
+  assert.match(renderInline('[x](java\tscript:alert(1))'), /^<a href="#">x<\/a>/);
+  // Leading control char before the scheme (invisible; survives `.trim()`).
+  assert.match(renderInline('[x](\x01javascript:alert(1))'), /^<a href="#">x<\/a>/);
+  // Newline-broken scheme, and an embedded NUL.
+  assert.match(renderInline('[x](java\nscript:alert(1))'), /^<a href="#">x<\/a>/);
+  assert.match(renderInline('[x](\x00javascript:alert(1))'), /^<a href="#">x<\/a>/);
+  // No "javascript" scheme reaches any href, in any of these.
+  assert.doesNotMatch(renderInline('[x](java\tscript:alert(1))'), /href="[^"]*java/i);
+  assert.doesNotMatch(renderInline('[x](\x01javascript:alert(1))'), /href="[^"]*java/i);
+});
+
 test('renderInline: safe links still render', () => {
   assert.equal(renderInline('[a](https://x.com)'), '<a href="https://x.com">a</a>');
   assert.equal(renderInline('[a](http://x.com)'), '<a href="http://x.com">a</a>');
