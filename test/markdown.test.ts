@@ -12,6 +12,32 @@ test('renderInline: code is not further processed and is escaped', () => {
   assert.equal(renderInline('`<a>**x**`'), '<code>&lt;a&gt;**x**</code>');
 });
 
+test('renderInline: dangerous link schemes are neutralized (no XSS)', () => {
+  // javascript: / data: / vbscript: must not survive into the href.
+  // The dangerous scheme is neutralized to href="#" — the link can never
+  // execute. (A nested ")" ends the link early per the minimal regex, leaving
+  // inert escaped text after it; the security property is that no payload
+  // reaches the href.)
+  assert.match(renderInline('[x](javascript:alert(1))'), /^<a href="#">x<\/a>/);
+  assert.match(
+    renderInline('[x](data:text/html,<img src=x onerror=alert(1)>)'),
+    /^<a href="#">x<\/a>/,
+  );
+  assert.match(renderInline('[x](vbscript:msgbox 1)'), /^<a href="#">x<\/a>$/);
+  // Entity-encoded colon must not sneak a scheme past the check.
+  assert.match(renderInline('[x](javascript&#58;alert 1)'), /^<a href="#">x<\/a>$/);
+  // None of these leave the dangerous scheme anywhere in the href.
+  assert.doesNotMatch(renderInline('[x](javascript:alert(1))'), /href="[^"]*javascript/i);
+});
+
+test('renderInline: safe links still render', () => {
+  assert.equal(renderInline('[a](https://x.com)'), '<a href="https://x.com">a</a>');
+  assert.equal(renderInline('[a](http://x.com)'), '<a href="http://x.com">a</a>');
+  assert.equal(renderInline('[a](mailto:x@y.com)'), '<a href="mailto:x@y.com">a</a>');
+  assert.equal(renderInline('[a](/tickets/TD-0001)'), '<a href="/tickets/TD-0001">a</a>');
+  assert.equal(renderInline('[a](#section)'), '<a href="#section">a</a>');
+});
+
 test('renderMarkdown: strips frontmatter', () => {
   const md = '---\nid: TD-0001\n---\n\n# Title\n';
   assert.match(renderMarkdown(md), /<h1>Title<\/h1>/);

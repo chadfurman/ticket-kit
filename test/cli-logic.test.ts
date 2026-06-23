@@ -108,3 +108,18 @@ test('buildTicketContent: rejects a parent that is not a clean ticket id (frontm
   const ok = buildTicketContent('TD-0001', { title: 't', parent: 'TD-0002' }, DEFAULT_CONFIG);
   assert.match(ok, /parent: TD-0002/);
 });
+
+test('buildTicketContent: a newline-bearing title cannot inject frontmatter', () => {
+  const out = buildTicketContent(
+    'TD-0001',
+    { title: 'Innocent\nstatus: done\npriority: P0' },
+    DEFAULT_CONFIG,
+  );
+  // The injected lines must be collapsed into the single title scalar, not
+  // become their own frontmatter fields.
+  assert.match(out, /title: Innocent status: done priority: P0/);
+  assert.doesNotMatch(out, /\nstatus: done/);
+  assert.doesNotMatch(out, /\npriority: P0/);
+  // The body heading is sanitized too (no raw newline break-out).
+  assert.match(out, /# TD-0001 · Innocent status: done priority: P0/);
+});

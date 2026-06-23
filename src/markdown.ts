@@ -12,6 +12,28 @@ import { escapeHtml } from './lib.ts';
 
 const PLACEHOLDER = '\0';
 
+/**
+ * Allow only links we can be sure won't execute script when clicked.
+ * Permits http(s), mailto, anchors, and relative paths; rejects javascript:,
+ * data:, vbscript:, and anything else carrying a scheme. A rejected URL renders
+ * as `#`, preserving the link text while neutralizing the payload.
+ *
+ * The URL arrives already HTML-escaped (renderInline escapes before linkifying),
+ * so decode the few entities that could hide a scheme's `:` before testing.
+ */
+function safeUrl(escapedUrl: string): string {
+  const decoded = escapedUrl
+    .replace(/&amp;/g, '&')
+    .replace(/&#0*58;?/g, ':')
+    .replace(/&colon;/gi, ':')
+    .trim();
+  // No scheme (relative path / anchor / query) → safe.
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(decoded)) return escapedUrl;
+  // Has a scheme → allow only a known-safe set.
+  if (/^(?:https?|mailto):/i.test(decoded)) return escapedUrl;
+  return '#';
+}
+
 /** Render inline spans: code (extracted first), then bold and links. */
 export function renderInline(text: string): string {
   const codes: string[] = [];
@@ -21,7 +43,10 @@ export function renderInline(text: string): string {
   });
   const escaped = escapeHtml(stashed)
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+    .replace(
+      /\[([^\]]+)\]\(([^)]+)\)/g,
+      (_m, label: string, url: string) => `<a href="${safeUrl(url)}">${label}</a>`,
+    );
   return escaped.replace(
     new RegExp(`${PLACEHOLDER}(\\d+)${PLACEHOLDER}`, 'g'),
     (_m, i: string) => `<code>${escapeHtml(codes[Number(i)] ?? '')}</code>`,
