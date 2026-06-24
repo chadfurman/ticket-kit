@@ -41,6 +41,29 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/**
+ * Make a value safe to interpolate as a single-line YAML frontmatter scalar.
+ * Collapses any newline / carriage-return / other control char to a space so a
+ * value can't break out of its line and inject extra frontmatter fields (the
+ * same class of bug the `parent` id-check guards against, for free-text fields).
+ */
+function frontmatterScalar(value: string): string {
+  return value.replace(/[\x00-\x1f\x7f]+/g, ' ').trim();
+}
+
+/**
+ * Emit a free-text value as a valid double-quoted YAML scalar. JSON string
+ * syntax is a subset of YAML's double-quoted flow scalar, so JSON.stringify
+ * handles the cases plain scalars can't: a leading-keyword colon (`Fix: parser`),
+ * a `#` that would otherwise start a comment (`foo # bar`), quotes, and brackets.
+ * Used only for `title` and `area` (genuinely free text); `status`/`priority`
+ * are controlled-vocabulary keys the parser/linter expect bare and unquoted.
+ * Pair with frontmatterScalar (newlines already collapsed) before quoting.
+ */
+function yamlScalar(value: string): string {
+  return JSON.stringify(value);
+}
+
 export function buildTicketContent(
   id: string,
   opts: NewTicketOptions,
@@ -51,23 +74,27 @@ export function buildTicketContent(
   if (opts.parent !== undefined && !new RegExp(`^${config.idPrefix}-\\d{4}$`).test(opts.parent)) {
     throw new Error(`parent must be a ticket id like ${config.idPrefix}-0001 (got "${opts.parent}")`);
   }
-  const status = opts.status ?? config.columns[0]?.key ?? 'open';
-  const priority = opts.priority ?? config.priorities[Math.floor(config.priorities.length / 2)] ?? 'P2';
-  const area = opts.area ?? 'general';
+  // Free-text / token fields are interpolated as single-line YAML scalars; strip
+  // line breaks so a crafted value (e.g. a title containing "\nstatus: done")
+  // can't inject frontmatter. The title also flows into the body heading.
+  const title = frontmatterScalar(opts.title);
+  const status = frontmatterScalar(opts.status ?? config.columns[0]?.key ?? 'open');
+  const priority = frontmatterScalar(opts.priority ?? config.priorities[Math.floor(config.priorities.length / 2)] ?? 'P2');
+  const area = frontmatterScalar(opts.area ?? 'general');
   const parentLine = opts.parent ? `\nparent: ${opts.parent}` : '';
   return `---
 id: ${id}
-title: ${opts.title}
+title: ${yamlScalar(title)}
 status: ${status}
 priority: ${priority}
 rank: 100
-area: ${area}
+area: ${yamlScalar(area)}
 pillars: []
 blocked-by: []${parentLine}
 created: ${today()}
 ---
 
-# ${id} · ${opts.title}
+# ${id} · ${title}
 
 ## Why
 

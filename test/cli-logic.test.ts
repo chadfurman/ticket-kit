@@ -108,3 +108,30 @@ test('buildTicketContent: rejects a parent that is not a clean ticket id (frontm
   const ok = buildTicketContent('TD-0001', { title: 't', parent: 'TD-0002' }, DEFAULT_CONFIG);
   assert.match(ok, /parent: TD-0002/);
 });
+
+test('buildTicketContent: a newline-bearing title cannot inject frontmatter', () => {
+  const out = buildTicketContent(
+    'TD-0001',
+    { title: 'Innocent\nstatus: done\npriority: P0' },
+    DEFAULT_CONFIG,
+  );
+  // The injected lines must be collapsed into the single (quoted) title scalar,
+  // not become their own frontmatter fields.
+  assert.match(out, /title: "Innocent status: done priority: P0"/);
+  assert.doesNotMatch(out, /\nstatus: done/);
+  assert.doesNotMatch(out, /\npriority: P0/);
+  // The body heading is sanitized too (no raw newline break-out).
+  assert.match(out, /# TD-0001 · Innocent status: done priority: P0/);
+});
+
+test('buildTicketContent: titles with YAML-significant chars stay valid (quoted)', () => {
+  // A colon-space or a `#` in an unquoted scalar would break or truncate the
+  // frontmatter; quoting keeps the whole value intact.
+  const colon = buildTicketContent('TD-0001', { title: 'Fix: the parser' }, DEFAULT_CONFIG);
+  assert.match(colon, /title: "Fix: the parser"/);
+  const hash = buildTicketContent('TD-0001', { title: 'foo # bar' }, DEFAULT_CONFIG);
+  assert.match(hash, /title: "foo # bar"/);
+  // An embedded quote is escaped, not left to terminate the scalar early.
+  const quote = buildTicketContent('TD-0001', { title: 'say "hi"' }, DEFAULT_CONFIG);
+  assert.match(quote, /title: "say \\"hi\\""/);
+});
