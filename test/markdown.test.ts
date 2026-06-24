@@ -24,8 +24,11 @@ test('renderInline: dangerous link schemes are neutralized (no XSS)', () => {
     /^<a href="#">x<\/a>/,
   );
   assert.match(renderInline('[x](vbscript:msgbox 1)'), /^<a href="#">x<\/a>$/);
-  // Entity-encoded colon must not sneak a scheme past the check.
+  // Entity-encoded colons (decimal, hex, and named) must not sneak a scheme past.
   assert.match(renderInline('[x](javascript&#58;alert 1)'), /^<a href="#">x<\/a>$/);
+  assert.match(renderInline('[x](javascript&#x3a;alert 1)'), /^<a href="#">x<\/a>$/);
+  assert.match(renderInline('[x](javascript&#X3A;alert 1)'), /^<a href="#">x<\/a>$/);
+  assert.match(renderInline('[x](javascript&colon;alert 1)'), /^<a href="#">x<\/a>$/);
   // None of these leave the dangerous scheme anywhere in the href.
   assert.doesNotMatch(renderInline('[x](javascript:alert(1))'), /href="[^"]*javascript/i);
 });

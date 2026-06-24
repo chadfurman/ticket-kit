@@ -32,6 +32,7 @@ function safeUrl(escapedUrl: string): string {
   const decoded = escapedUrl
     .replace(/&amp;/g, '&')
     .replace(/&#0*58;?/g, ':')
+    .replace(/&#x0*3a;?/gi, ':')
     .replace(/&colon;/gi, ':')
     .replace(/[\x00-\x20\x7f]+/g, '');
   // No scheme (relative path / anchor / query) → safe.

@@ -51,6 +51,19 @@ function frontmatterScalar(value: string): string {
   return value.replace(/[\x00-\x1f\x7f]+/g, ' ').trim();
 }
 
+/**
+ * Emit a free-text value as a valid double-quoted YAML scalar. JSON string
+ * syntax is a subset of YAML's double-quoted flow scalar, so JSON.stringify
+ * handles the cases plain scalars can't: a leading-keyword colon (`Fix: parser`),
+ * a `#` that would otherwise start a comment (`foo # bar`), quotes, and brackets.
+ * Used only for `title` and `area` (genuinely free text); `status`/`priority`
+ * are controlled-vocabulary keys the parser/linter expect bare and unquoted.
+ * Pair with frontmatterScalar (newlines already collapsed) before quoting.
+ */
+function yamlScalar(value: string): string {
+  return JSON.stringify(value);
+}
+
 export function buildTicketContent(
   id: string,
   opts: NewTicketOptions,
@@ -71,11 +84,11 @@ export function buildTicketContent(
   const parentLine = opts.parent ? `\nparent: ${opts.parent}` : '';
   return `---
 id: ${id}
-title: ${title}
+title: ${yamlScalar(title)}
 status: ${status}
 priority: ${priority}
 rank: 100
-area: ${area}
+area: ${yamlScalar(area)}
 pillars: []
 blocked-by: []${parentLine}
 created: ${today()}
